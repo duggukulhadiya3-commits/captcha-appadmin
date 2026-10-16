@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#061027">
+<title>Smart Future — Admin Control Center</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#050d20;--panel:#091832;--panel2:#0d2042;--line:#16477d;--cyan:#4de6ff;--blue:#168cff;--purple:#a855f7;--green:#18e0ad;--amber:#ffc857;--red:#ff496d;--text:#eff7ff;--muted:#91b0d8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(ellipse at 45% -10%,#123c70 0,transparent 38%),radial-gradient(ellipse at 100% 10%,#24164d 0,transparent 30%),var(--bg)}
+button,input,select{font:inherit}button{cursor:pointer;transition:.2s}button:disabled{opacity:.45;cursor:not-allowed}
+.hidden{display:none!important}
+.topbar{min-height:80px;display:flex;align-items:center;gap:20px;padding:14px 24px;border-bottom:1px solid #1479cf;background:#061027dd;position:sticky;top:0;z-index:5;backdrop-filter:blur(16px)}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:48px;height:48px;display:grid;place-items:center;border:2px solid var(--cyan);border-radius:14px;color:var(--cyan);font-size:24px;box-shadow:0 0 20px #00cfff2c}
+.brand strong{font-size:18px;display:block}.brand small{color:var(--cyan);font-size:10px;letter-spacing:2px;font-weight:800}
+.top-spacer{flex:1}
+.account{display:flex;align-items:center;gap:10px;border:1px solid #1b5c9b;border-radius:24px;padding:8px 14px;background:#07162e}
+.admin-pill{font-size:9px;background:#00c98d;color:#042b25;border-radius:20px;padding:4px 8px;font-weight:900}
+.btn{border:1px solid #2a70b6;background:#0a2143;color:var(--cyan);padding:9px 14px;border-radius:10px;font-size:12px;font-weight:800}
+.btn:hover{filter:brightness(1.2)}
+.btn-primary{background:linear-gradient(110deg,#087df4,#263fe2);color:#fff;border-color:#4cbaff}
+.btn-danger{background:linear-gradient(110deg,#a91d3c,#ec2f50);color:#fff;border-color:#ff6380}
+.btn-good{background:linear-gradient(110deg,#007c65,#00bd91);color:#fff;border-color:#33f4c2}
+.btn-logout{border-color:#a83251;background:#251124;color:#ff7896;padding:8px 14px;border-radius:20px}
+.layout{max-width:1400px;margin:0 auto;padding:24px 18px}
+.welcome{display:flex;align-items:center;gap:16px;border:1px solid #1773ca;border-radius:16px;padding:16px 20px;margin-bottom:20px;background:linear-gradient(110deg,#0b2145,#07152e)}
+.welcome-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#057dff,#1640aa);font-size:26px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{border:1px solid var(--blue);border-radius:16px;padding:16px;background:linear-gradient(135deg,#09264e,#07142c)}
+.stat-card.amber{border-color:#e6ad37;background:linear-gradient(135deg,#362412,#1a1322)}
+.stat-card.green{border-color:#00d7b0;background:linear-gradient(135deg,#064e50,#09283a)}
+.stat-label{font-size:11px;color:#8deeff;font-weight:800}.amber .stat-label{color:#ffe0a2}.green .stat-label{color:#7dffe0}
+.stat-value{font-size:28px;font-weight:900;margin-top:4px}
+.panel{border:1px solid #155a9f;border-radius:18px;background:#071831f5;padding:18px;margin-bottom:20px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px}
+.table-wrap{overflow-x:auto;border:1px solid #164b91;border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:750px;font-size:12px}
+th{background:#0b2044;color:#c8dcff;padding:13px;text-align:left;border-bottom:1px solid #20569a}
+td{padding:12px 13px;border-bottom:1px solid #15365e}
+tbody tr:hover{background:#0d2243}
+.status{padding:5px 9px;border-radius:20px;font-weight:800;font-size:10px}
+.status.pending{background:#ffd15c;color:#342000}
+.status.approved{background:#00d2a2;color:#002b25}
+.status.rejected{background:#f43f5e;color:#fff}
+.actions{display:flex;gap:6px}
+.actions .btn{padding:6px 10px;font-size:10px}
+.auth-box{width:min(420px,90%);margin:12vh auto;padding:32px 24px;border:1px solid #1769bb;border-radius:22px;background:#0c2142;text-align:center}
+.auth-logo{font-size:46px;color:var(--cyan);margin-bottom:10px}
+.auth-error{color:#ff9bad;font-size:12px;margin-top:12px}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<section id="authScreen" class="auth-box">
+ <div class="auth-logo">⬡</div>
+ <h1 style="font-size:22px;margin:0 0 8px;color:var(--cyan);">ADMIN CONTROL</h1>
+ <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:20px;">Sign in with your verified Admin Google Account.</p>
+ <button id="loginBtn" class="btn btn-primary" style="width:100%;padding:13px;" onclick="loginAdmin()">🌐 &nbsp; Sign in with Google</button>
+ <div id="authError" class="auth-error"></div>
+</section>
+
+<!-- Admin Dashboard -->
+<div id="adminApp" class="hidden">
+<header class="topbar">
+ <div class="brand"><div class="logo">⬡</div><div><strong>SMART FUTURE</strong><small>ADMIN CONTROL</small></div></div>
+ <div class="top-spacer"></div>
+ <div class="account"><div class="account-text"><b id="adminEmail">—</b></div><span class="admin-pill">ADMIN</span></div>
+ <button id="logoutBtn" class="btn btn-logout" onclick="auth.signOut()">Logout ↗</button>
+</header>
+
+<div class="layout">
+<section class="welcome">
+ <div class="welcome-icon">♛</div>
+ <div><h2 style="margin:0 0 4px;font-size:18px;">Welcome Admin!</h2><p style="margin:0;font-size:12px;color:var(--cyan);">Live user activity and redemption management.</p></div>
+</section>
+
+<section class="stats">
+ <article class="stat-card">
+  <div class="stat-label">Total Users</div>
+  <div class="stat-value" id="totalUsers">0</div>
+ </article>
+ <article class="stat-card amber">
+  <div class="stat-label">Pending Requests</div>
+  <div class="stat-value" id="pendingCount">0</div>
+ </article>
+ <article class="stat-card green">
+  <div class="stat-label">Approved (Paid)</div>
+  <div class="stat-value" id="approvedCount">0</div>
+ </article>
+</section>
+
+<section class="panel">
+ <div class="panel-head">
+  <div><h2 style="font-size:16px;margin:0 0 4px;">Redemption Requests</h2><p style="font-size:11px;color:var(--muted);margin:0;">Rate: 20 Coins = ₹1 INR</p></div>
+ </div>
+ <div class="table-wrap">
+  <table>
+   <thead>
+    <tr>
+     <th>User Name</th>
+     <th>Email</th>
+     <th>UPI / Paytm Details</th>
+     <th>Coins</th>
+     <th>Amount (INR)</th>
+     <th>Status</th>
+     <th>Actions</th>
+    </tr>
+   </thead>
+   <tbody id="withdrawalsBody">
+    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Waiting for data...</td></tr>
+   </tbody>
+  </table>
+ </div>
+</section>
+</div>
+</div>
+
+<script>
+"use strict";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBDzcbfjXC9WOl3Kwz377t9R4EeYomd74k",
+  authDomain: "captchaearn-a679f.firebaseapp.com",
+  projectId: "captchaearn-a679f",
+  storageBucket: "captchaearn-a679f.firebasestorage.app",
+  messagingSenderId: "1090622823716",
+  appId: "1:1090622823716:web:02cda6f35f1055361b67b1",
+  measurementId: "G-PR6D0LTXV4"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const ADMIN_EMAIL = "rashmikulhadiya6@gmail.com";
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      document.getElementById("authScreen").classList.add("hidden");
+      document.getElementById("adminApp").classList.remove("hidden");
+      document.getElementById("adminEmail").innerText = user.email;
+      loadLiveDashboard();
+    } else {
+      auth.signOut();
+      showAuthError("Access Denied: You are not authorized as Admin.");
+    }
+  } else {
+    document.getElementById("authScreen").classList.remove("hidden");
+    document.getElementById("adminApp").classList.add("hidden");
+  }
+});
+
+function loginAdmin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => showAuthError(err.message));
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById("authError");
+  el.innerText = msg;
+  el.style.display = "block";
+}
+
+function loadLiveDashboard() {
+  db.collection("users").onSnapshot(snap => {
+    document.getElementById("totalUsers").innerText = snap.size;
+  });
+
+  db.collection("withdrawals").orderBy("createdAt", "desc").onSnapshot(snap => {
+    let pending = 0;
+    let approved = 0;
+    const tbody = document.getElementById("withdrawalsBody");
+    tbody.innerHTML = "";
+
+    if (snap.empty) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No requests found.</td></tr>';
+      document.getElementById("pendingCount").innerText = 0;
+      document.getElementById("approvedCount").innerText = 0;
+      return;
+    }
+
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (data.status === "Pending") pending++;
+      if (data.status === "Approved") approved++;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${data.name || "User"}</b></td>
+        <td>${data.email || "N/A"}</td>
+        <td style="color:var(--cyan);font-weight:700;">${data.upi || "N/A"}</td>
+        <td>${data.coins} 🪙</td>
+        <td><b>₹${data.amountINR || (data.coins / 20).toFixed(2)}</b></td>
+        <td><span class="status ${data.status.toLowerCase()}">${data.status}</span></td>
+        <td class="actions">
+          ${data.status === "Pending" ? `
+            <button class="btn btn-good" onclick="updateStatus('${doc.id}', 'Approved')">Pay / Approve</button>
+            <button class="btn btn-danger" onclick="rejectStatus('${doc.id}', '${data.uid}',${data.coins})">Reject</button>
+          ` : `<span style="color:var(--muted);">Completed</span>`}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("pendingCount").innerText = pending;
+    document.getElementById("approvedCount").innerText = approved;
+  });
+}
+
+function updateStatus(docId, status) {
+  if (confirm("Mark this withdrawal request as " + status + "?")) {
+    db.collection("withdrawals").doc(docId).update({
+      status: status,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+}
+
+function rejectStatus(docId, uid, coins) {
+  if (confirm("Reject request and refund " + coins + " coins to the user?")) {
+    db.collection("withdrawals").doc(docId).update({
+      status: "Rejected",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      db.collection("users").doc(uid).update({
+        coins: firebase.firestore.FieldValue.increment(coins)
+      });
+    });
+  }
+}
+</script>
+</body>
+</html>
